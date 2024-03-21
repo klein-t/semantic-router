@@ -6,9 +6,8 @@ import numpy as np
 from semantic_router.encoders.base import BaseEncoder
 from semantic_router.schema import DocumentSplit
 from semantic_router.splitters.base import BaseSplitter
-from semantic_router.splitters.utils import split_to_sentences, split_to_sentences_spacy, tiktoken_length
+from semantic_router.splitters.utils import split_to_sentences, split_to_sentences_spacy, split_to_sentences_recursive, tiktoken_length
 from semantic_router.utils.logger import logger
-
 
 @dataclass
 class SplitStatistics:
@@ -88,6 +87,8 @@ class RollingWindowSplitter(BaseSplitter):
                     docs = split_to_sentences_spacy(docs[0], self.spacy_model)
                 elif self.pre_splitter == "regex":
                     docs = split_to_sentences(docs[0])
+                elif self.pre_splitter == "recursive":
+                    docs = split_to_sentences_recursive(docs[0])
             except Exception as e:
                 logger.error(f"Error splitting document to sentences: {e}")
                 raise    
@@ -416,6 +417,8 @@ class RollingWindowSplitter(BaseSplitter):
             sentences = [sentence for doc in docs for sentence in split_to_sentences_spacy(doc)]
         elif self.pre_splitter == "regex":
             sentences = [sentence for doc in docs for sentence in split_to_sentences(doc)]
+        elif self.pre_splitter == "recursive":
+            sentences = [sentence for doc in docs for sentence in split_to_sentences_recursive(doc)]
         else:
             raise ValueError("Invalid pre_splitter value. Supported values are 'spacy' and 'regex'.")
         encoded_sentences = self._encode_documents(sentences)

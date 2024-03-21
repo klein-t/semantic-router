@@ -1,8 +1,6 @@
 import regex
 import tiktoken
-
 from semantic_router.utils.logger import logger
-
 
 def split_to_sentences(text: str) -> list[str]:
     """
@@ -94,6 +92,39 @@ def split_to_sentences_spacy(text: str, spacy_model: str = "en_core_web_sm") -> 
     sentences = [sentence.text.strip() for sentence in doc.sents]
     return sentences
 
+def split_to_sentences_recursive(text: str):
+    """
+    Split a given text into sentences using a recursive text splitter from LangChain.
+
+    Args:
+        text (str): The text to split into sentences.
+
+    Returns:
+        list: A list of sentences extracted from the text.
+    """
+
+    # Check if langchain_text_splitters are installed
+    try:
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+    except ImportError:
+        logger.warning(
+            "langchain_text_splitters is not installed. Please `pip install "
+            "semantic-router[processing]`."
+        )
+        return
+    
+    text_splitter = RecursiveCharacterTextSplitter(
+    # Set a really small chunk size, just to show.
+    chunk_size=10,
+    chunk_overlap=0,
+    length_function=tiktoken_length,
+    separators=["\n", "\n\n", r'(?<=\.)\s+'],
+    is_separator_regex=True,
+    )
+
+    texts = text_splitter.create_documents([text])
+    results = [text.page_content for text in texts]
+    return results
 
 def tiktoken_length(text: str) -> int:
     tokenizer = tiktoken.get_encoding("cl100k_base")
