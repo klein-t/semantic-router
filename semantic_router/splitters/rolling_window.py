@@ -6,7 +6,7 @@ import numpy as np
 from semantic_router.encoders.base import BaseEncoder
 from semantic_router.schema import DocumentSplit
 from semantic_router.splitters.base import BaseSplitter
-from semantic_router.utils import split_to_sentences, split_to_sentences_spacy, split_to_sentences_recursive, tiktoken_length
+from semantic_router.splitters.utils import split_to_sentences, split_to_sentences_spacy, split_to_sentences_recursive, tiktoken_length
 from semantic_router.utils.logger import logger
 
 @dataclass
