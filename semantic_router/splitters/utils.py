@@ -2,7 +2,7 @@ import regex
 import tiktoken
 from semantic_router.utils.logger import logger
 
-def split_to_sentences(text: str) -> list[str]:
+def split_to_sentences(text: str, regex_pattern: str) -> list[str]:
     """
     Enhanced regex pattern to split a given text into sentences more accurately.
 
@@ -19,39 +19,42 @@ def split_to_sentences(text: str) -> list[str]:
     Returns:
         list: A list of sentences extracted from the text.
     """
-    regex_pattern = r"""
-        # Negative lookbehind for word boundary, word char, dot, word char
-        (?<!\b\w\.\w.)
-        # Negative lookbehind for single uppercase initials like "A."
-        (?<!\b[A-Z][a-z]\.)
-        # Negative lookbehind for abbreviations like "U.S."
-        (?<!\b[A-Z]\.)
-        # Negative lookbehind for abbreviations with uppercase letters and dots
-        (?<!\b\p{Lu}\.\p{Lu}.)
-        # Negative lookbehind for numbers, to avoid splitting decimals
-        (?<!\b\p{N}\.)
-        # Positive lookbehind for punctuation followed by whitespace
-        (?<=\.|\?|!|:|\.\.\.)\s+
-        # Positive lookahead for uppercase letter or opening quote at word boundary
-        (?="?(?=[A-Z])|"\b)
-        # OR
-        |
-        # Splits after punctuation that follows closing punctuation, followed by
-        # whitespace
-        (?<=[\"\'\]\)\}][\.!?])\s+(?=[\"\'\(A-Z])
-        # OR
-        |
-        # Splits after punctuation if not preceded by a period
-        (?<=[^\.][\.!?])\s+(?=[A-Z])
-        # OR
-        |
-        # Handles splitting after ellipses
-        (?<=\.\.\.)\s+(?=[A-Z])
-        # OR
-        |
-        # Matches and removes control characters and format characters
-        [\p{Cc}\p{Cf}]+
-    """
+    if regex_pattern is None: 
+        regex_pattern = r"""
+            # Negative lookbehind for word boundary, word char, dot, word char
+            (?<!\b\w\.\w.)
+            # Negative lookbehind for single uppercase initials like "A."
+            (?<!\b[A-Z][a-z]\.)
+            # Negative lookbehind for abbreviations like "U.S."
+            (?<!\b[A-Z]\.)
+            # Negative lookbehind for abbreviations with uppercase letters and dots
+            (?<!\b\p{Lu}\.\p{Lu}.)
+            # Negative lookbehind for numbers, to avoid splitting decimals
+            (?<!\b\p{N}\.)
+            # Positive lookbehind for punctuation followed by whitespace
+            (?<=\.|\?|!|:|\.\.\.)\s+
+            # Positive lookahead for uppercase letter or opening quote at word boundary
+            (?="?(?=[A-Z])|"\b)
+            # OR
+            |
+            # Splits after punctuation that follows closing punctuation, followed by
+            # whitespace
+            (?<=[\"\'\]\)\}][\.!?])\s+(?=[\"\'\(A-Z])
+            # OR
+            |
+            # Splits after punctuation if not preceded by a period
+            (?<=[^\.][\.!?])\s+(?=[A-Z])
+            # OR
+            |
+            # Handles splitting after ellipses
+            (?<=\.\.\.)\s+(?=[A-Z])
+            # OR
+            |
+            # Matches and removes control characters and format characters
+            [\p{Cc}\p{Cf}]+
+        """
+    elif not isinstance(regex_pattern, str):
+        raise TypeError("regex_pattern must be a string.")
     sentences = regex.split(regex_pattern, text, flags=regex.VERBOSE)
     sentences = [sentence.strip() for sentence in sentences if sentence.strip()]
     return sentences
@@ -92,7 +95,7 @@ def split_to_sentences_spacy(text: str, spacy_model: str = "en_core_web_sm") -> 
     sentences = [sentence.text.strip() for sentence in doc.sents]
     return sentences
 
-def split_to_sentences_recursive(text: str):
+def split_to_sentences_recursive(text: str, regex_separators: str):
     """
     Split a given text into sentences using a recursive text splitter from LangChain.
 
@@ -113,12 +116,16 @@ def split_to_sentences_recursive(text: str):
         )
         return
     
+    if regex_separators is None:
+        regex_separators = ["\n", "\n\n", r'(?<=\.)\s+']
+    elif not isinstance(regex_separators, str):
+        raise TypeError("regex_separators must be a string.")
     text_splitter = RecursiveCharacterTextSplitter(
     # Set a really small chunk size, just to show.
-    chunk_size=10,
+    chunk_size=30,
     chunk_overlap=0,
     length_function=tiktoken_length,
-    separators=["\n", "\n\n", r'(?<=\.)\s+'],
+    separators=regex_separators,
     is_separator_regex=True,
     )
 
